@@ -1,10 +1,26 @@
 library(ggplot2)
+library(shinydashboard)
+library(shinyjs)
 
 fluidPage(
+  useShinyjs(),
   
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "main.css")
+    tags$link(rel = "stylesheet", type = "text/css", href = "main.css"),
+    tags$style("#erro{color: red;
+                                 font-size: 14px;
+                                 font-style: italic;
+                                 }"
+    ),
+    tags$style("#done{color: green;
+                                 font-size: 14px;
+                                 font-style: italic;
+                                 }"
+    )
   ),
+  
+  
+  
   
   titlePanel("Follow-UP ITV"),
 
@@ -18,25 +34,33 @@ fluidPage(
                                 dateInput("date", "date",format = "yyyy-mm-dd"),
                                 selectInput("flow_cell", "Flow Cell", c("teste1","teste2")),
                                 selectInput("application", "Application", c("teste1","teste2")),
-                                actionButton("run","Run")
+                                textInput("genome", "Genome", "")
                          ),
                          column(4,
                                 selectInput("assay", "Assay", c("teste1","teste2")),
-                                numericInput("leaght_reads", "Lenght Reads", c("teste1","teste2")),
-                                textInput("adapter", "Adapter", "CTGTCTCTTATACACATCT")
+                                numericInput("length_reads", "Length Reads", c("teste1","teste2")),
+                                textInput("adapter", "Adapter", "CTGTCTCTTATACACATCT"),
+                                textInput("folder_name", "File", "")
                          ),
                          column(4,
                                 selectInput("source", "Source", c("teste1","teste2")),
                                 textInput("path", "Path", ""),
-                                fileInput("table1", "input table")
+                                fileInput("datafile", "input table"),
+                                actionButton("run","Run")
 
                          )
                          
                        ),
-                       br(),br(),
+                       br(),
+                       div(id = "div_erro",
+                       verbatimTextOutput("erro")),
+                       div(id = "div_done",
+                       verbatimTextOutput("done")),
+                       br(),
                        # Create a new row for the table.
                        fluidRow(
-                         DT::dataTableOutput("table")
+                         rHandsontableOutput('table') %>%
+                           hot_context_menu(allowRowEdit = FALSE, allowColEdit = FALSE)
                        )),
               tabPanel("about")
   )
