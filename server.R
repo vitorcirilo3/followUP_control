@@ -1,12 +1,26 @@
 # Load the ggplot2 package which provides
 # the 'mpg' dataset.
-library(ggplot2)
-library(mongolite)
-library(shinyTable)
-library(shiny)
-library(rhandsontable)
+
+unique.rows <- function (df1, df2) { 
+  # Returns any rows of df1 that are not in df2 
+  out <- NULL 
+  for (i in 1:nrow(df1)) { 
+    found <- FALSE 
+    for (j in 1:nrow(df2)) { 
+      if (all(df1[i,] == df2[j,])) { 
+        found <- TRUE 
+        break 
+      } 
+    } 
+    if (!found) out <- rbind(out, df1[i,]) 
+  } 
+  out 
+} 
 
 function(input, output) {
+  
+  # Create the object with no values
+  values <- reactiveValues()
   
   substrRight <- function(x, n){
     substr(x, nchar(x)-n+1, nchar(x))
@@ -43,18 +57,23 @@ function(input, output) {
   #   
   # })
   
-  data <-  mongo$find(fields =  '{"_id" : 0}')
+  #data <-  mongo$find(fields =  '{"_id" : 0}')
+  data <-  mongo$find(fields =  '{"_id":1, "status":1, "file_name":1,"itv_number":1,"genome":1,"runner":1,"path":1 }')
+  values$data <- data
+  values$database <- data
   
   if(length(data) != 0){
-    data$status <- "ok"
-    data$status[1] <- "seq"
-    
+
     #data <- data.frame(matrix(ncol = 7, nrow = 2))
     #colnames(data) <- c("status","source","file_name","ITV_number","genome","runner","path")
     #data[,1] <- "ok4"
     
+    
+    #values$data <- data
+    #data <- data[,-1]
+    
     output$table <- renderRHandsontable(
-      rhandsontable(data, search = TRUE, height = 700) %>%
+      rhandsontable(values$data, search = TRUE, height = 700) %>%
         hot_cols(columnSorting = TRUE, renderer = "
            function (instance, td, row, col, prop, value, cellProperties) {
              Handsontable.renderers.TextRenderer.apply(this, arguments);
@@ -71,7 +90,7 @@ function(input, output) {
                             "function (key, options) {
                          var srch = prompt('Search criteria');
 
-                         this.search.query(srch);
+                         this.search.query(srcinput$folder_nameh);
                          this.render();
                        }"))))
     )
@@ -89,8 +108,8 @@ function(input, output) {
     hide(id = "div_erro")
     hide(id = "div_done")
     
-    if(is.na(input$length_reads) == T | is.na(input$genome) == T | is.na(input$path) == T | is.na(input$folder_name) == T | is.na(input$adapter) == T | is.null(input$datafile) == T |
-       input$length_reads == "" | input$length_reads <= 0 | is.na(input$genome) == "" | is.na(input$path) == "" | is.na(input$folder_name) == "" | is.na(input$adapter) == "" | is.null(input$datafile) == ""){
+    if(is.na(input$length_reads) == T | is.na(input$genome) == T | is.na(input$folder_name) == T | is.na(input$adapter) == T | is.null(input$datafile) == T |
+       input$length_reads == "" | input$length_reads <= 0 | is.na(input$genome) == "" | is.na(input$folder_name) == "" | is.na(input$adapter) == "" | is.null(input$datafile) == ""){
       show(id = "div_erro")
       output$erro <- renderPrint({ print("missing values in input or negative length")}) 
     }else{
@@ -125,7 +144,7 @@ function(input, output) {
       aux_date$X1 <- as.character(aux_date$X1)
       date_id <- paste0(substrRight(aux_date$X1, 2),aux_date$X2,aux_date$X3)
       
-      
+      path_base <- paste0("/home/vitorcirilo/Documentos/",input$folder_name,"/")
       
       for(i in 1:nrow(matrix_partial)){
         matrix_partial$Sample_ID[i] <- as.character(df$`Sample ID`[i])
@@ -136,22 +155,23 @@ function(input, output) {
         matrix_partial$Description[i] <- as.character(df$Project[i])
         matrix_partial$Sample_Project[i] <- paste0(date_id,"_",input$flow_cell)
         matrix_partial$Sample_Name[i] <- ""
-        matrix_partial$Sample_Plate[i] <- ""
+        matrix_partial$Sample_Plate[i] <- ",,"
         matrix_partial$Sample_Well[i] <- ""
         
         
         matrix_final$itv_number[i] <- as.character(df$`Sample ID`[i])
-        matrix_final$path[i] <- as.character(input$path)
+        matrix_final$path[i] <- as.character(path_base)
         matrix_final$source[i] <- input$source
         matrix_final$status[i] <- "-"
         matrix_final$genome[i] <- input$genome
         matrix_final$runner[i] <- "-"
-        matrix_final$path[i] <- input$path
         matrix_final$file_name[i] <- input$folder_name
       }
       
+      
+      print(paste0(path_base,'analysis-output.txt'))
       # Start writing to an output file
-      sink('analysis-output.txt')
+      sink(paste0(path_base,'analysis-output.txt'))
       
       # Do some stuff here
       cat("[Header]\n")
@@ -174,24 +194,46 @@ function(input, output) {
       cat(paste0("\n"))
 
       cat("[Data]\n")
-      
-      #cat(matrix_partial)
 
-  
+      #matrix_partial <- matrix(c(2,5,6,4), nrow=5, ncol = 5)
+      #matrix_partial <- as.data.frame(matrix_partial)
+      s <- do.call(paste, as.data.frame(matrix_partial, stringsAsFactors=FALSE))
+      s <- gsub('\\s+', ',', s)
+      
+      
+      aux_matrix <- matrix(1,nrow=nrow(matrix_partial), ncol= 1)
+      aux_matrix <- as.data.frame(aux_matrix)
+      for(i in 1:nrow(matrix_partial)){
+        aux_matrix[i,1] <- s[i]
+      }
+      
+      colnames(aux_matrix) <- "Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Description"
       
       # Stop writing to the file
       sink()
       
       
       # Append to the file
-      sink('analysis-output.txt', append=TRUE)
+      sink(paste0(path_base,'analysis-output.txt'), append=TRUE)
       sink()
       
+      
+      write.table(aux_matrix, file=paste0(path_base,'analysis-output.txt'), sep=",", row.names=FALSE, append=TRUE, quote = FALSE)
+      
+
+      
+      #values$matrix_final <- matrix_final
       mongo$insert(matrix_final)
       
-      data <-  mongo$find(fields =  '{"_id" : 0}')
+      #data <-  mongo$find(fields =  '{"_id" : 0}')
+      data <-  mongo$find(fields =  '{"_id":1, "status":1, "file_name":1,"itv_number":1,"genome":1,"runner":1,"path":1 }')
+      values$data <- data
+      values$database <- data
+      #data <- data[,-1]
+      
+      
       output$table <- renderRHandsontable(
-        rhandsontable(data, search = TRUE, height = 700) %>%
+        rhandsontable(values$data, search = TRUE, height = 700) %>%
           hot_cols(columnSorting = TRUE, renderer = "
            function (instance, td, row, col, prop, value, cellProperties) {
              Handsontable.renderers.TextRenderer.apply(this, arguments);
@@ -219,6 +261,28 @@ function(input, output) {
     }
 
   })
+  
+  
+  observeEvent(input$save, { 
+    
+    df <- hot_to_r(input$table)
+    aux_update <- unique.rows(df,values$database)
+    
+    print(aux_update$`_id`[1])
+    print(aux_update$file_name[1])
+    
+    if(is.null(aux_update) == F){
+      for(i in 1:nrow(aux_update)){
+        #mongo$update('{"_id": {"$oid":"5a155e3596d02e0ebd07ac5e"}}', '{"$set":{"file_name":"hahaha"}}')
+        query <- paste0('{"_id": {"$oid":"',aux_update$`_id`[i],'"}}')
+        updater <- paste0('{"$set":{"file_name":"',aux_update$file_name[i],'"}}')
+        mongo$update(query, updater)
+      }
+    }
+
+    
+
+    })
 
   
 }

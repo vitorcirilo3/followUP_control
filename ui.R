@@ -1,8 +1,23 @@
 library(ggplot2)
 library(shinydashboard)
 library(shinyjs)
+library(dplyr)
+library(mongolite)
+library(shinyTable)
+library(shiny)
+library(rhandsontable)
+library(compare)
 
 fluidPage(
+  
+  list_path <- system("ls -d /home/vitorcirilo/Documentos/*/", intern = TRUE),
+  for(i in 1:length(list_path)){
+    aux <- strsplit(list_path[[i]],"/")
+    aux <- aux[[1]]
+    list_path2[i] <- aux[length(aux)]
+  },
+
+  
   useShinyjs(),
   
   tags$head(
@@ -39,12 +54,11 @@ fluidPage(
                          column(4,
                                 selectInput("assay", "Assay", c("teste1","teste2")),
                                 numericInput("length_reads", "Length Reads", c("teste1","teste2")),
-                                textInput("adapter", "Adapter", "CTGTCTCTTATACACATCT"),
-                                textInput("folder_name", "File", "")
+                                textInput("adapter", "Adapter", "CTGTCTCTTATACACATCT")
                          ),
                          column(4,
                                 selectInput("source", "Source", c("teste1","teste2")),
-                                textInput("path", "Path", ""),
+                                selectInput("folder_name", "File", c(list_path2)),
                                 fileInput("datafile", "input table"),
                                 actionButton("run","Run")
 
@@ -56,7 +70,8 @@ fluidPage(
                        verbatimTextOutput("erro")),
                        div(id = "div_done",
                        verbatimTextOutput("done")),
-                       br(),
+                       actionButton("save","save"),
+                       br(),br(),
                        # Create a new row for the table.
                        fluidRow(
                          rHandsontableOutput('table') %>%
