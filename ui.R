@@ -8,15 +8,17 @@ library(shiny)
 library(rhandsontable)
 library(compare)
 
+rm(list=ls())
+
+list_path <- system("ls -d /bio/share_bio/illumina/*/", intern = TRUE)
+
 fluidPage(
-  
-  list_path <- system("ls -d /home/vitorcirilo/Documentos/*/", intern = TRUE),
+  list_path2 <- vector(),
   for(i in 1:length(list_path)){
     aux <- strsplit(list_path[[i]],"/")
     aux <- aux[[1]]
     list_path2[i] <- aux[length(aux)]
   },
-
   
   useShinyjs(),
   
@@ -34,9 +36,6 @@ fluidPage(
     )
   ),
   
-  
-  
-  
   titlePanel("Follow-UP ITV"),
 
   div(id="main_div",
@@ -46,26 +45,28 @@ fluidPage(
                        # Create a new Row in the UI for selectInputs
                        fluidRow(
                          column(4,
-                                dateInput("date", "date",format = "yyyy-mm-dd"),
+                                dateInput("date", "date",format = "yy-mm-dd"),
                                 selectInput("flow_cell", "Flow Cell", c("teste1","teste2")),
-                                selectInput("application", "Application", c("teste1","teste2")),
-                                textInput("genome", "Genome", "")
+                                selectInput("genome", "Genome", c("teste1","teste2")),
+                                actionButton("run","Run")
                          ),
                          column(4,
                                 selectInput("assay", "Assay", c("teste1","teste2")),
+                                selectInput("application", "Application", c("teste1","teste2")),
                                 numericInput("length_reads", "Length Reads", c("teste1","teste2")),
                                 textInput("adapter", "Adapter", "CTGTCTCTTATACACATCT")
                          ),
                          column(4,
                                 selectInput("source", "Source", c("teste1","teste2")),
-                                selectInput("folder_name", "File", c(list_path2)),
-                                fileInput("datafile", "input table"),
-                                actionButton("run","Run")
+                                #selectInput("folder_name", "File", c(list_path2)),
+                                uiOutput("factor1"),
+                                fileInput("datafile", "input table")
 
                          )
                          
                        ),
                        br(),
+                       verbatimTextOutput("date_msg"),
                        div(id = "div_erro",
                        verbatimTextOutput("erro")),
                        div(id = "div_done",
@@ -77,7 +78,8 @@ fluidPage(
                          rHandsontableOutput('table') %>%
                            hot_context_menu(allowRowEdit = FALSE, allowColEdit = FALSE)
                        )),
-              tabPanel("about")
+              tabPanel("about",
+                       includeMarkdown(file.path("text", "about_blind.md")))
   )
   )
   

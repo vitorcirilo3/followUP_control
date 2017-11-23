@@ -1,6 +1,7 @@
 # Load the ggplot2 package which provides
 # the 'mpg' dataset.
 
+
 unique.rows <- function (df1, df2) { 
   # Returns any rows of df1 that are not in df2 
   out <- NULL 
@@ -58,10 +59,10 @@ function(input, output) {
   # })
   
   #data <-  mongo$find(fields =  '{"_id" : 0}')
-  data <-  mongo$find(fields =  '{"_id":1, "status":1, "file_name":1,"itv_number":1,"genome":1,"runner":1,"path":1 }')
+  data <-  mongo$find(fields =  '{"_id":1, "status":1, "file_name":1,"itv_number":1,"genome":1,"runner":1,"path":1,"tt_reads":1,"tt_base":1,"size_file":1 }')
   values$data <- data
   values$database <- data
-  
+
   if(length(data) != 0){
 
     #data <- data.frame(matrix(ncol = 7, nrow = 2))
@@ -100,7 +101,33 @@ function(input, output) {
   
 
   
-   
+  output$date_msg <- renderPrint({ 
+    newdate<- strptime(as.character(input$date), "%Y-%m-%d")
+    system_command <- paste0("ls -d /bio/share_bio/illumina/",format(newdate, "%y%m%d"),"*/")
+    list_path <- system(system_command, intern = TRUE)
+    list_path2 <- vector()
+
+    if(length(list_path) != 0){
+      for(i in 1:length(list_path)){
+        aux <- strsplit(list_path[[i]],"/")
+        aux <- aux[[1]]
+        list_path2[i] <- aux[length(aux)]
+      }
+    }else{
+      system_command <- paste0("ls -d /bio/share_bio/illumina/*/")
+
+      list_path <- system(system_command, intern = TRUE)
+      for(i in 1:length(list_path)){
+        aux <- strsplit(list_path[[i]],"/")
+        aux <- aux[[1]]
+        list_path2[i] <- aux[length(aux)]
+      }
+    }
+
+    output$factor1 <- renderUI({
+      selectInput("folder_name", "File",c(list_path2))
+    })
+    }) 
   
   
   observeEvent(input$run, {
@@ -130,8 +157,8 @@ function(input, output) {
       colnames(df) <- c("Sample ID","Project","Well","index_1","index_12","index_2","index_22")
       
       
-      matrix_final <- matrix(nrow=nrow(df), ncol = 7)
-      colnames(matrix_final) <- c("status","source","file_name","ITV_number","genome","runner","path")
+      matrix_final <- matrix(nrow=nrow(df), ncol = 10)
+      colnames(matrix_final) <- c("status","source","file_name","ITV_number","genome","runner","path","tt_reads","tt_base","size_file")
       matrix_final <- as.data.frame(matrix_final)
       
       
@@ -144,7 +171,7 @@ function(input, output) {
       aux_date$X1 <- as.character(aux_date$X1)
       date_id <- paste0(substrRight(aux_date$X1, 2),aux_date$X2,aux_date$X3)
       
-      path_base <- paste0("/home/vitorcirilo/Documentos/",input$folder_name,"/")
+      path_base <- paste0("/bio/share_bio/illumina/",input$folder_name,"/")
       
       for(i in 1:nrow(matrix_partial)){
         matrix_partial$Sample_ID[i] <- as.character(df$`Sample ID`[i])
@@ -165,13 +192,17 @@ function(input, output) {
         matrix_final$status[i] <- "-"
         matrix_final$genome[i] <- input$genome
         matrix_final$runner[i] <- "-"
+        matrix_final$tt_reads[i] <- "-"
+        matrix_final$tt_base[i] <- "-"
+        matrix_final$size_file[i] <- "-"
         matrix_final$file_name[i] <- input$folder_name
+        
       }
       
       
-      print(paste0(path_base,'analysis-output.txt'))
+      print(paste0(path_base,'SampleSheet.csv'))
       # Start writing to an output file
-      sink(paste0(path_base,'analysis-output.txt'))
+      sink(paste0(path_base,'SampleSheet.csv'))
       
       # Do some stuff here
       cat("[Header]\n")
@@ -214,11 +245,11 @@ function(input, output) {
       
       
       # Append to the file
-      sink(paste0(path_base,'analysis-output.txt'), append=TRUE)
+      sink(paste0(path_base,'SampleSheet.csv'), append=TRUE)
       sink()
       
       
-      write.table(aux_matrix, file=paste0(path_base,'analysis-output.txt'), sep=",", row.names=FALSE, append=TRUE, quote = FALSE)
+      write.table(aux_matrix, file=paste0(path_base,'SampleSheet.csv'), sep=",", row.names=FALSE, append=TRUE, quote = FALSE)
       
 
       
