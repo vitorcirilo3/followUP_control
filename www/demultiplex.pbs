@@ -1,7 +1,7 @@
 #PBS -l nodes=1:ppn=24
-#PBS -N demultiplex_RAD
-#PBS -o demultiplex_RAD.log
-#PBS -e demultiplex_RAD.err
+#PBS -N demultiplex
+#PBS -o demultiplex.log
+#PBS -e demultiplex.err
 
 CORES=$[ `cat $PBS_NODEFILE | wc -l` ]
 NODES=$[ `uniq $PBS_NODEFILE | wc -l` ]
@@ -10,7 +10,7 @@ printf "Inico: `date`\n";
 TBEGIN=`echo "print time();" | perl`
 
 printf "\n"
-printf "> Executando job_code7\n";
+printf "> Executando demultiplexacao\n";
 printf "> Rodando em $CORES nucleos, em $NODES nos\n"
 cd $PBS_O_WORKDIR
 

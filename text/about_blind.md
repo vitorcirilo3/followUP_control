@@ -10,6 +10,7 @@ The code is avaiable in the <a target="_blank" href="www">GitHub Inc</a>.
 
 ## Contact
 vitor.santos@pq.itv.org
+talvane.lima@pq.itv.org
 
 ## configuration
 R language: version 4.1
